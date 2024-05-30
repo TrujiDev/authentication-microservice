@@ -50,8 +50,42 @@ export class AuthService extends PrismaClient implements OnModuleInit {
     }
   }
 
-  loginUser(loginUserDto: LoginUserDto) {
-    return { loginUserDto };
+  async loginUser(loginUserDto: LoginUserDto) {
+    const { email, password } = loginUserDto;
+
+    try {
+      const user = await this.user.findUnique({
+        where: { email },
+      });
+
+      if (!user) {
+        throw new RpcException({
+          statis: 400,
+          message: 'User does not exist',
+        });
+      }
+
+      const validPassword = bcrypt.compareSync(password, user.password);
+
+      if (!validPassword) {
+        throw new RpcException({
+          status: 400,
+          message: 'Incorrect e-mail/password',
+        });
+      }
+
+      const { password: __, ...validUser } = user;
+
+      return {
+        user: validUser,
+        token: 'ABC',
+      };
+    } catch (error) {
+      throw new RpcException({
+        status: 400,
+        message: error.message,
+      });
+    }
   }
 
   verifyUser() {
